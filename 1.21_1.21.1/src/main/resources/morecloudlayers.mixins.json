@@ -1,0 +1,17 @@
+{
+	"required": true,
+	"package": "com.armaninyow.morecloudlayers.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"LevelRendererMixin"
+	],
+	"mixins": [
+		"ServerLevelMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

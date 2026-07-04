@@ -1,0 +1,14 @@
+{
+	"morecloudlayers.config.title": "More Cloud Layers",
+	"morecloudlayers.config.category.general": "General",
+	"morecloudlayers.config.layerCount": "Number of Layers",
+	"morecloudlayers.config.layerCount.tooltip": "How many extra cloud layers to add above the vanilla layer (1-8).",
+	"morecloudlayers.config.speedMode": "Speed Mode",
+	"morecloudlayers.config.speedDropPercent": "Speed Drop (%)",
+	"morecloudlayers.config.speedDropPercent.tooltip": "Each layer moves this much slower than the one before it. Ignored when Speed Mode is Random.",
+	"morecloudlayers.config.sizeMode": "Size Mode",
+	"morecloudlayers.config.sizeDropPercent": "Size Drop (%)",
+	"morecloudlayers.config.sizeDropPercent.tooltip": "Each layer's cloud tiling shrinks by this much compared to the one before it. Ignored when Size Mode is Random.",
+	"morecloudlayers.config.randomTransparency": "Random Transparency",
+	"morecloudlayers.config.randomTransparency.tooltip": "Each layer gets a random opacity between 75% and 100%."
+}
