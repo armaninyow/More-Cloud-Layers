@@ -19,6 +19,10 @@ If you encounter bugs or wish to contribute:
 <details>
   <summary></summary>
   
+### 1.1.0—1.21.x
+* Added support for reading the true cloud height even when other mods override it
+* Fixed extra cloud layers not following Sodium Extra's custom cloud altitude setting
+* Improved compatibility with mods that change how vanilla clouds are rendered
 ### 1.0.0—1.21.x
 * Initial Release
 </details>
