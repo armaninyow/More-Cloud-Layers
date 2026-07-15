@@ -2,6 +2,7 @@ package com.armaninyow.morecloudlayers.mixin;
 
 import com.armaninyow.morecloudlayers.config.CloudConfigManager;
 import com.armaninyow.morecloudlayers.config.CloudLayerData;
+import com.armaninyow.morecloudlayers.render.CloudHeightTracker;
 import com.armaninyow.morecloudlayers.render.CloudLayerAlphaAccessor;
 import com.armaninyow.morecloudlayers.render.CloudLayerDirtyMarker;
 import net.minecraft.client.CloudStatus;
@@ -48,8 +49,16 @@ public abstract class LevelRendererMixin implements CloudLayerDirtyMarker {
 			return;
 		}
 
+		// Use the height vanilla's own CloudRenderer actually rendered with this frame,
+		// not the raw parameter - mods like Sodium Extra override altitude via a
+		// @Redirect on the CloudRenderer.render(...) call itself, which never
+		// reassigns this parameter. CloudHeightTracker is populated from inside
+		// render() (see CloudRendererMixin), so it reflects the true final value
+		// regardless of what redirected it, without depending on that mod directly.
+		float resolvedCloudHeight = CloudHeightTracker.getLastRenderedHeight(cloudHeight);
+
 		for (CloudLayerData layerData : CloudConfigManager.getInstance().getActiveLayers()) {
-			morecloudlayers$renderLayer(color, cloudStatus, cloudHeight, camPos, time, layerData);
+			morecloudlayers$renderLayer(color, cloudStatus, resolvedCloudHeight, camPos, time, layerData);
 		}
 	}
 
