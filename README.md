@@ -19,6 +19,11 @@ If you encounter bugs or wish to contribute:
 <details>
   <summary></summary>
   
+### 2.0.0—26.x
+* Added support for Minecraft 26.1, 26.1.1, and 26.1.2
+* Replaced Cloth Config with YetAnotherConfigLib (YACL) for the in-game config screen
+* Added a toggle that assigns each active layer a random, distinct slot instead of stacking sequentially
+* Added a toggle and a separate pattern dropdown that removes a portion of each layer's texture to thin out dense layer counts
 ### 1.1.0—1.21.x
 * Added support for reading the true cloud height even when other mods override it
 * Fixed extra cloud layers not following Sodium Extra's custom cloud altitude setting
