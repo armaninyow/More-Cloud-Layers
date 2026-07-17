@@ -6,12 +6,24 @@ public class ModConfig {
 		RANDOM
 	}
 
-	public int layerCount = 2;              // 1-8
+	public enum CullPattern {
+		QUADRANT,
+		DIAGONAL_HALF,
+		HALF,
+		EIGHTHS
+	}
+
+	public int layerCount = 2;
 	public Mode speedMode = Mode.LINEAR;
-	public int speedDropPercent = 5;         // 1-10, ignored when speedMode == RANDOM
+	public int speedDropPercent = 5;
 	public Mode sizeMode = Mode.LINEAR;
-	public int sizeDropPercent = 4;          // 1-10, ignored when sizeMode == RANDOM
-	public boolean randomTransparency = true; // when true, each layer gets a random 25%-75% alpha, re-rolled on the 3 lifecycle triggers
+	public int sizeDropPercent = 4;
+	public boolean randomTransparency = true;
+
+	public boolean randomLayerPositions = false;
+
+	public boolean layerCullingEnabled = false;
+	public CullPattern layerCullingPattern = CullPattern.QUADRANT;
 
 	public ModConfig copy() {
 		ModConfig c = new ModConfig();
@@ -21,6 +33,9 @@ public class ModConfig {
 		c.sizeMode = this.sizeMode;
 		c.sizeDropPercent = this.sizeDropPercent;
 		c.randomTransparency = this.randomTransparency;
+		c.randomLayerPositions = this.randomLayerPositions;
+		c.layerCullingEnabled = this.layerCullingEnabled;
+		c.layerCullingPattern = this.layerCullingPattern;
 		return c;
 	}
 }

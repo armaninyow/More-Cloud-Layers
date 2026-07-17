@@ -9,13 +9,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/**
- * wakeUpAllPlayers() only runs when the server actually skips the night
- * (called right after the sleep-percentage check succeeds in tickDaylight/updateSleepingPlayerList)
- * - it does NOT run on a single player manually getting out of bed. That makes it
- * the correct hook for the "new day, new weather" trigger from the spec, as opposed
- * to EntitySleepEvents.STOP_SLEEPING which fires on every wake-up regardless of cause.
- */
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin {
 

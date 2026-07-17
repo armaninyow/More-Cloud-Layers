@@ -5,9 +5,13 @@ import com.armaninyow.morecloudlayers.config.ModConfig;
 import com.armaninyow.morecloudlayers.render.CloudLayerDirtyMarker;
 import com.terraformersmc.modmenu.api.ConfigScreenFactory;
 import com.terraformersmc.modmenu.api.ModMenuApi;
-import me.shedaniel.clothconfig2.api.ConfigBuilder;
-import me.shedaniel.clothconfig2.api.ConfigCategory;
-import me.shedaniel.clothconfig2.api.ConfigEntryBuilder;
+import dev.isxander.yacl3.api.ConfigCategory;
+import dev.isxander.yacl3.api.Option;
+import dev.isxander.yacl3.api.OptionDescription;
+import dev.isxander.yacl3.api.YetAnotherConfigLib;
+import dev.isxander.yacl3.api.controller.EnumControllerBuilder;
+import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder;
+import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 
@@ -18,60 +22,101 @@ public class ModMenuIntegration implements ModMenuApi {
 			ModConfig current = CloudConfigManager.getInstance().getConfig();
 			ModConfig working = current.copy();
 
-			ConfigBuilder builder = ConfigBuilder.create()
-				.setParentScreen(parent)
-				.setTitle(Component.translatable("morecloudlayers.config.title"))
-				.setSavingRunnable(() -> {
+			Option<Integer> speedDropOption = Option.<Integer>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.speedDropPercent"))
+				.description(OptionDescription.of(Component.translatable("morecloudlayers.config.speedDropPercent.tooltip")))
+				.binding(5, () -> working.speedDropPercent, v -> working.speedDropPercent = v)
+				.controller(opt -> IntegerSliderControllerBuilder.create(opt).range(1, 10).step(1))
+				.available(current.speedMode != ModConfig.Mode.RANDOM)
+				.build();
+
+			Option<ModConfig.Mode> speedModeOption = Option.<ModConfig.Mode>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.speedMode"))
+				.binding(ModConfig.Mode.LINEAR, () -> working.speedMode, v -> working.speedMode = v)
+				.controller(opt -> EnumControllerBuilder.create(opt).enumClass(ModConfig.Mode.class))
+				.listener((opt, value) -> speedDropOption.setAvailable(value != ModConfig.Mode.RANDOM))
+				.build();
+
+			Option<Integer> sizeDropOption = Option.<Integer>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.sizeDropPercent"))
+				.description(OptionDescription.of(Component.translatable("morecloudlayers.config.sizeDropPercent.tooltip")))
+				.binding(4, () -> working.sizeDropPercent, v -> working.sizeDropPercent = v)
+				.controller(opt -> IntegerSliderControllerBuilder.create(opt).range(1, 10).step(1))
+				.available(current.sizeMode != ModConfig.Mode.RANDOM)
+				.build();
+
+			Option<ModConfig.Mode> sizeModeOption = Option.<ModConfig.Mode>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.sizeMode"))
+				.binding(ModConfig.Mode.LINEAR, () -> working.sizeMode, v -> working.sizeMode = v)
+				.controller(opt -> EnumControllerBuilder.create(opt).enumClass(ModConfig.Mode.class))
+				.listener((opt, value) -> sizeDropOption.setAvailable(value != ModConfig.Mode.RANDOM))
+				.build();
+
+			Option<Boolean> randomTransparencyOption = Option.<Boolean>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.randomTransparency"))
+				.description(OptionDescription.of(Component.translatable("morecloudlayers.config.randomTransparency.tooltip")))
+				.binding(true, () -> working.randomTransparency, v -> working.randomTransparency = v)
+				.controller(TickBoxControllerBuilder::create)
+				.build();
+
+			Option<Boolean> randomLayerPositionsOption = Option.<Boolean>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.randomLayerPositions"))
+				.description(OptionDescription.of(Component.translatable("morecloudlayers.config.randomLayerPositions.tooltip")))
+				.binding(false, () -> working.randomLayerPositions, v -> working.randomLayerPositions = v)
+				.controller(TickBoxControllerBuilder::create)
+				.available(current.layerCount <= 7)
+				.build();
+
+			Option<Integer> layerCountOption = Option.<Integer>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.layerCount"))
+				.description(OptionDescription.of(Component.translatable("morecloudlayers.config.layerCount.tooltip")))
+				.binding(2, () -> working.layerCount, v -> working.layerCount = v)
+				.controller(opt -> IntegerSliderControllerBuilder.create(opt).range(1, 8).step(1))
+				.listener((opt, value) -> randomLayerPositionsOption.setAvailable(value <= 7))
+				.build();
+
+			Option<ModConfig.CullPattern> layerCullingPatternOption = Option.<ModConfig.CullPattern>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.layerCullingPattern"))
+				.description(OptionDescription.of(Component.translatable("morecloudlayers.config.layerCullingPattern.tooltip")))
+				.binding(ModConfig.CullPattern.QUADRANT, () -> working.layerCullingPattern, v -> working.layerCullingPattern = v)
+				.controller(opt -> EnumControllerBuilder.create(opt).enumClass(ModConfig.CullPattern.class))
+				.available(current.layerCullingEnabled)
+				.build();
+
+			Option<Boolean> layerCullingEnabledOption = Option.<Boolean>createBuilder()
+				.name(Component.translatable("morecloudlayers.config.layerCullingEnabled"))
+				.description(OptionDescription.of(Component.translatable("morecloudlayers.config.layerCullingEnabled.tooltip")))
+				.binding(false, () -> working.layerCullingEnabled, v -> working.layerCullingEnabled = v)
+				.controller(TickBoxControllerBuilder::create)
+				.listener((opt, value) -> layerCullingPatternOption.setAvailable(value))
+				.build();
+
+			YetAnotherConfigLib yacl = YetAnotherConfigLib.createBuilder()
+				.title(Component.translatable("morecloudlayers.config.title"))
+				.category(ConfigCategory.createBuilder()
+					.name(Component.translatable("morecloudlayers.config.category.general"))
+					.option(layerCountOption)
+					.option(randomLayerPositionsOption)
+					.option(speedModeOption)
+					.option(speedDropOption)
+					.option(sizeModeOption)
+					.option(sizeDropOption)
+					.option(randomTransparencyOption)
+					.build())
+				.category(ConfigCategory.createBuilder()
+					.name(Component.translatable("morecloudlayers.config.category.others"))
+					.option(layerCullingEnabledOption)
+					.option(layerCullingPatternOption)
+					.build())
+				.save(() -> {
 					CloudConfigManager.getInstance().setConfig(working);
 					if (Minecraft.getInstance().levelRenderer instanceof CloudLayerDirtyMarker marker) {
 						marker.morecloudlayers$markLayersDirty();
 					}
-				});
+				})
+				.build();
 
-			ConfigEntryBuilder entryBuilder = builder.entryBuilder();
-			ConfigCategory general = builder.getOrCreateCategory(Component.translatable("morecloudlayers.config.category.general"));
-
-			general.addEntry(entryBuilder.startIntSlider(
-					Component.translatable("morecloudlayers.config.layerCount"), current.layerCount, 1, 8)
-				.setDefaultValue(2)
-				.setTooltip(Component.translatable("morecloudlayers.config.layerCount.tooltip"))
-				.setSaveConsumer(v -> working.layerCount = v)
-				.build());
-
-			general.addEntry(entryBuilder.startEnumSelector(
-					Component.translatable("morecloudlayers.config.speedMode"), ModConfig.Mode.class, current.speedMode)
-				.setDefaultValue(ModConfig.Mode.LINEAR)
-				.setSaveConsumer(v -> working.speedMode = v)
-				.build());
-
-			general.addEntry(entryBuilder.startIntSlider(
-					Component.translatable("morecloudlayers.config.speedDropPercent"), current.speedDropPercent, 1, 10)
-				.setDefaultValue(5)
-				.setTooltip(Component.translatable("morecloudlayers.config.speedDropPercent.tooltip"))
-				.setSaveConsumer(v -> working.speedDropPercent = v)
-				.build());
-
-			general.addEntry(entryBuilder.startEnumSelector(
-					Component.translatable("morecloudlayers.config.sizeMode"), ModConfig.Mode.class, current.sizeMode)
-				.setDefaultValue(ModConfig.Mode.LINEAR)
-				.setSaveConsumer(v -> working.sizeMode = v)
-				.build());
-
-			general.addEntry(entryBuilder.startIntSlider(
-					Component.translatable("morecloudlayers.config.sizeDropPercent"), current.sizeDropPercent, 1, 10)
-				.setDefaultValue(4)
-				.setTooltip(Component.translatable("morecloudlayers.config.sizeDropPercent.tooltip"))
-				.setSaveConsumer(v -> working.sizeDropPercent = v)
-				.build());
-
-			general.addEntry(entryBuilder.startBooleanToggle(
-					Component.translatable("morecloudlayers.config.randomTransparency"), current.randomTransparency)
-				.setDefaultValue(true)
-				.setTooltip(Component.translatable("morecloudlayers.config.randomTransparency.tooltip"))
-				.setSaveConsumer(v -> working.randomTransparency = v)
-				.build());
-
-			return builder.build();
+			return yacl.generateScreen(parent);
 		};
 	}
 }

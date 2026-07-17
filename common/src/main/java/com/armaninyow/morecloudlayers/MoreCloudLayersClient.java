@@ -12,8 +12,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 
 public class MoreCloudLayersClient implements ClientModInitializer {
-	// Tracks the last dimension we saw so we only trigger on an actual transition,
-	// specifically a transition INTO the Overworld (per spec: portal back to Overworld).
 	private ResourceKey<Level> lastDimension = null;
 
 	@Override
@@ -24,15 +22,11 @@ public class MoreCloudLayersClient implements ClientModInitializer {
 			context.client().execute(this::triggerRecalculate);
 		});
 
-		// Trigger 1: world join.
 		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
 			lastDimension = client.level != null ? client.level.dimension() : null;
 			triggerRecalculate();
 		});
 
-		// Trigger 2: dimension change back into the Overworld.
-		// Polled each client tick rather than relying on an unverified dedicated
-		// dimension-change event - cheap (one reference comparison) and reliable.
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			if (client.level == null) {
 				return;
@@ -45,8 +39,6 @@ public class MoreCloudLayersClient implements ClientModInitializer {
 			lastDimension = current;
 		});
 
-		// Trigger 3 (wake up / night skip) arrives via CloudRecalcPayload from ServerLevelMixin,
-		// handled by the registerGlobalReceiver call above.
 	}
 
 	private void triggerRecalculate() {

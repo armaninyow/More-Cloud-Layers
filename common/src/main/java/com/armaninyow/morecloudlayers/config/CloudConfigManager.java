@@ -16,18 +16,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Holds the persisted config and the cached, resolved per-layer values.
- * recalculate() is the only place layer values change, and it is only meant
- * to be called from the three lifecycle triggers (world join, dimension change, wake up).
- */
 public final class CloudConfigManager {
 	private static final CloudConfigManager INSTANCE = new CloudConfigManager();
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final String FILE_NAME = MoreCloudLayers.MOD_ID + ".json";
+	private static final int MAX_SLOTS = 8;
+	private static final int MAX_SHUFFLE_ATTEMPTS = 200;
 
 	private ModConfig config = new ModConfig();
 	private List<CloudLayerData> activeLayers = Collections.emptyList();
+
+	private int[] previousSlots = null;
 
 	private CloudConfigManager() {
 	}
@@ -40,10 +39,6 @@ public final class CloudConfigManager {
 		return config;
 	}
 
-	/**
-	 * Replaces the config (e.g. after the user saves the Cloth Config screen) and
-	 * immediately recalculates, since layer count / mode changes should apply right away.
-	 */
 	public void setConfig(ModConfig newConfig) {
 		this.config = newConfig;
 		save();
@@ -74,7 +69,20 @@ public final class CloudConfigManager {
 			this.config = new ModConfig();
 		}
 
+		normalizeConfig();
 		recalculate();
+	}
+
+	private void normalizeConfig() {
+		if (config.speedMode == null) {
+			config.speedMode = ModConfig.Mode.LINEAR;
+		}
+		if (config.sizeMode == null) {
+			config.sizeMode = ModConfig.Mode.LINEAR;
+		}
+		if (config.layerCullingPattern == null) {
+			config.layerCullingPattern = ModConfig.CullPattern.QUADRANT;
+		}
 	}
 
 	public void save() {
@@ -89,34 +97,74 @@ public final class CloudConfigManager {
 		}
 	}
 
-	/**
-	 * Recomputes the cached per-layer speed/size values.
-	 * Must only be called from: world join, dimension change to Overworld, or the
-	 * server's night-skip wake-up event - never per-frame.
-	 */
 	public void recalculate() {
-		int count = Math.max(1, Math.min(8, config.layerCount));
+		int count = Math.max(1, Math.min(MAX_SLOTS, config.layerCount));
+		int[] slots = resolveSlotAssignment(count);
 		List<CloudLayerData> layers = new ArrayList<>(count);
 
-		for (int i = 1; i <= count; i++) {
-			float speed = resolveValue(config.speedMode, config.speedDropPercent, i);
-			float size = resolveValue(config.sizeMode, config.sizeDropPercent, i);
+		for (int i = 0; i < count; i++) {
+			int slot = slots[i];
+			float speed = resolveValue(config.speedMode, config.speedDropPercent, slot);
+			float size = resolveValue(config.sizeMode, config.sizeDropPercent, slot);
 			float alpha = config.randomTransparency
-                ? 0.75F + ThreadLocalRandom.current().nextFloat() * 0.25F // 75%-100%
+                ? 0.75F + ThreadLocalRandom.current().nextFloat() * 0.25F
 				: 1.0F;
-			layers.add(new CloudLayerData(i, speed, size, alpha));
+			layers.add(new CloudLayerData(slot, speed, size, alpha));
 		}
 
 		this.activeLayers = Collections.unmodifiableList(layers);
+		this.previousSlots = slots;
+	}
+
+	private int[] resolveSlotAssignment(int count) {
+		if (!config.randomLayerPositions || count >= MAX_SLOTS) {
+			int[] sequential = new int[count];
+			for (int i = 0; i < count; i++) {
+				sequential[i] = i + 1;
+			}
+			return sequential;
+		}
+
+		int[] previous = (previousSlots != null && previousSlots.length == count) ? previousSlots : null;
+
+		List<Integer> pool = new ArrayList<>(MAX_SLOTS);
+		for (int slot = 1; slot <= MAX_SLOTS; slot++) {
+			pool.add(slot);
+		}
+
+		int[] assignment = new int[count];
+
+		for (int attempt = 0; attempt < MAX_SHUFFLE_ATTEMPTS; attempt++) {
+			Collections.shuffle(pool, ThreadLocalRandom.current());
+			for (int i = 0; i < count; i++) {
+				assignment[i] = pool.get(i);
+			}
+
+			if (previous == null) {
+				break;
+			}
+
+			boolean anyRepeat = false;
+			for (int i = 0; i < count; i++) {
+				if (assignment[i] == previous[i]) {
+					anyRepeat = true;
+					break;
+				}
+			}
+
+			if (!anyRepeat) {
+				break;
+			}
+		}
+
+		return assignment;
 	}
 
 	private float resolveValue(ModConfig.Mode mode, int dropPercent, int layerIndex) {
 		if (mode == ModConfig.Mode.RANDOM) {
-			// Random between 30% and 100%, re-rolled every recalculate() call.
 			return 0.30F + ThreadLocalRandom.current().nextFloat() * 0.70F;
 		}
 
-		// Linear: 100% - (drop% * layerIndex), expressed as a 0.0-1.0 multiplier.
 		float value = 1.0F - (dropPercent / 100.0F) * layerIndex;
 		return Math.max(0.0F, value);
 	}
